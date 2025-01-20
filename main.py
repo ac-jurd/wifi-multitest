@@ -4,6 +4,7 @@ from typing import List
 import subprocess
 import pywifi
 from pywifi.iface import Interface
+import argparse
 
 # Constants
 PROFILE_DATA_FILENAME = 'profiles.json'
@@ -12,6 +13,11 @@ ATTEMPT_LENGTH = 1 # Seconds
 WAIT_BETWEEN_TESTS = 3 # Seconds
 
 wifi = pywifi.PyWiFi()
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Run speedtests on specified wifi profiles.")
+parser.add_argument('--server', type=str, help='Optional server ID for speedtest-cli')
+args = parser.parse_args()
 
 # Check number of available wifi interfaces
 if len(wifi.interfaces()) == 0:
@@ -109,17 +115,27 @@ try:
             print(f'Timeout while connecting profile {profile.ssid}')
             continue
 
+        # Prepare speedtest-cli command with optional server argument
+        speedtest_command = ['speedtest-cli']
+        if args.server:
+            speedtest_command.extend(['--server', args.server])  # Add the server argument if provided
+        else:
+            speedtest_command.append('--secure')  # Add secure flag if no server is specified
+
         # Perform speedtest via speedtest-cli
         # Write results from stdout to file
         try:
             # Run speedtest-cli, save output to file
             print(f'Running speed test on profile {profile.ssid}')
+            print("Running command:", subprocess.list2cmdline(speedtest_command))
             with open(f'speedtest-{profile.ssid}.txt', 'w') as file:
-                subprocess.run(['speedtest-cli', '--secure'], stdout=file)
+                subprocess.run(speedtest_command, stdout=file)
             print('Success')
+
         except FileNotFoundError:
             print('Unable to find speedtest-cli.exe')
             exit(1)
+
         except subprocess.CalledProcessError as e:
             print(f'Error while running subproces speedtest-cli on profile {profile.ssid}: {e}')
             continue
@@ -166,6 +182,3 @@ finally:
 
     print('Done')
 
-# Parse results from file, store in dict
-
-# Analyse results dict, connect to fastest AP
