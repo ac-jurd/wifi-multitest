@@ -1,6 +1,6 @@
 [
 	{
-		"ssid": "WIFI_AP_NAME",
-		"key": "password123"
+		"ssid": "Network1",
+		"key": "password1"
 	}
 ]
