@@ -100,6 +100,23 @@ if USE_GRAPHIC:
         ax.set_xticks(range(len(ssids)))  # Set tick positions for each bar
         ax.set_xticklabels(ssids, rotation=25, ha='right')
 
+        # Overlay the values on top of each bar
+        for bar in bars:
+            height = bar.get_height()  # Get the height of each bar (value)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,  # X position: middle of the bar
+                height,  # Y position: at the height of the bar
+                f'{height:.2f}',  # Value to display
+                ha='center',  # Horizontal alignment
+                va='bottom',  # Vertical alignment
+                fontsize=10,  # Font size
+                color='black'  # Text color
+            )
+
+        # Add extra space above the tallest bar to prevent clipping of the text
+        max_height = max(y_data)  # Get the maximum height of the bars
+        ax.set_ylim(0, max_height * 1.1)  # Set the upper limit to 10% higher than the tallest bar
+
     # Plot each metric in a separate subplot with different colors
     plot_subplot(axes[0, 0], download_speeds, 'Download Speed (Mbps)', 'Download Speed (Mbps)', BAR_COLORS)  # Top-left
     plot_subplot(axes[0, 1], upload_speeds, 'Upload Speed (Mbps)', 'Upload Speed (Mbps)', BAR_COLORS)  # Top-right
