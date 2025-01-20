@@ -31,13 +31,21 @@ print(f'Selected wifi Interface {iface.name()}')
 # Save original profile for restoration when script is done
 original_profile = None
 if iface.status() == pywifi.const.IFACE_CONNECTED:
-    current_ssid = iface.network_profiles()[0].ssid
-    profiles = iface.network_profiles()
-    for profile in profiles:
-        if profile.ssid == current_ssid:
-            original_profile = profile
-            print(f'Saved original profile {profile.ssid}')
-            break
+    iface.scan()
+    time.sleep(2)  # Allow time for scanning
+    scan_results = iface.scan_results()
+    current_ssid = next((result.ssid for result in scan_results if result.bssid), None)
+    
+    if current_ssid:
+        profiles = iface.network_profiles()
+        for profile in profiles:
+            if profile.ssid == current_ssid:
+                original_profile = profile
+                print(f'Saved original profile {profile.ssid}')
+                break
+    if not original_profile:
+        print('Could not identify the original profile. Proceeding without restoration.')
+
 
 # Read profile settings from file
 profile_data = []
@@ -145,11 +153,9 @@ try:
             # iface.remove_network_profile(profile)
 
 finally:
-    # If an original profile was saved at the start of the script
+    # Restore the original profile
     if original_profile:
         print(f'Restoring original profile {original_profile.ssid}')
-
-        # Disconnect from current profile
         iface.disconnect()
 
         # Check disconnect status with timeout
@@ -158,27 +164,22 @@ finally:
                 break
             time.sleep(ATTEMPT_LENGTH)
         else:
-            # Did not disconnect in the specified amount of time
-            print(f'Error while disconnecting iface to restore original profile')
+            print('Error while disconnecting to restore the original profile.')
             exit(1)
 
-        # Add original profile to network profiles
+        # Attempt reconnection
         iface.add_network_profile(original_profile)
-        # Connect using original profile
         iface.connect(original_profile)
 
-        # Check connection status using timeout
         for attempt in range(MAX_ATTEMPTS):
             if iface.status() == pywifi.const.IFACE_CONNECTED:
-                print('Sucessfully reconnected')
+                print(f'Successfully restored original profile: {original_profile.ssid}')
                 break
             time.sleep(ATTEMPT_LENGTH)
         else:
-            # Did not connect in the specified amount of time
-            print(f'Error while reconnecting iface to restore original profile')
-            exit(1)
+            print('Failed to reconnect to the original profile. Please reconnect manually.')
     else:
-        print('No original profile to restore')
+        print('No original profile to restore.')
 
     print('Done')
 
